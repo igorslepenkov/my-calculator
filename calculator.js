@@ -60,19 +60,38 @@ function Calculator() {
     }
   };
 
+  this.processPercentExpression = (string) => {
+    let newString = string;
+    while (newString.match(/[0-9\.]+[-\+\/\*][0-9\.]+%/g)) {
+      if (newString.match(/([0-9\.]+)([-\+])([0-9\.]+)%/)) {
+        const expression = newString.match(/([0-9\.]+)([-+])([0-9\.]+)%/);
+        const value = expression[1];
+        const operator = expression[2];
+        const percents = expression[3];
+        const result = (Number(value) / 100) * Number(percents);
+        newString = newString.replace(
+          expression[0],
+          `${value}${operator}${result}`
+        );
+      } else if (newString.match(/([0-9\.]+)([*\/])([0-9\.]+)%/)) {
+        const expression = newString.match(/([0-9\.]+)([*\/])([0-9\.]+)%/);
+        const value = expression[1];
+        const operator = expression[2];
+        const percents = expression[3];
+        const result = 100 / Number(percents);
+        newString = newString.replace(
+          expression[0],
+          `${value}${operator}${result}`
+        );
+      }
+    }
+    return newString;
+  };
+
   this.processMathString = (string) => {
     let newString = string;
-    while (newString.match(/[0-9\.]+[-+\/*][0-9\.]+%/g)) {
-      const expression = newString.match(/([0-9\.]+)([-+\/*])([0-9\.]+)%/);
-      const value = expression[1];
-      const operator = expression[2];
-      const percents = expression[3];
-      const result = (Number(value) / 100) * Number(percents);
-      newString = newString.replace(
-        expression[0],
-        `${value}${operator}${result}`
-      );
-    }
+
+    newString = this.processPercentExpression(newString);
 
     while (newString.match(/([0-9\.]+)([*/])([0-9\.]+)/)) {
       const devAndMult = newString.match(/([0-9\.]+)([*/])([0-9\.]+)/);
