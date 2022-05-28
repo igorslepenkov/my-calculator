@@ -36,10 +36,8 @@ function Calculator() {
         case "c":
           this.input.value = "";
           break;
-        case "%":
-          break;
         case "=":
-          this.parseMathExpression();
+          this.parseMathString();
           break;
         default:
           this.input.value += event.target.dataset.action;
@@ -48,15 +46,36 @@ function Calculator() {
   };
 
   this.onInputChange = () => {
-    if (this.input.value.match(/[^-*+./0-9\(\)]/gi)) {
-      this.input.value = this.input.value.replace(/[^-*+./0-9\(\)]/gi, "");
+    if (this.input.value.match(/[^-*+\./0-9\(\)%]/g)) {
+      this.input.value = this.input.value.replace(/[^-*+\./0-9\(\)%]/g, "");
+    }
+
+    if (this.input.value.match(/[\.0-9%]+\(/g)) {
+      this.input.value.match(/[\.0-9%]+\(/g).forEach((exp) => {
+        const part1 = exp.match(/[\.0-9%]+/);
+        const part2 = exp.match(/\(/);
+        const newString = part1 + "*" + part2;
+        this.input.value = this.input.value.replace(exp, newString);
+      });
     }
   };
 
-  this.parseMathString = (string) => {
+  this.processMathString = (string) => {
     let newString = string;
-    while (newString.match(/([0-9]+)([*/])([0-9]+)/)) {
-      const devAndMult = newString.match(/([0-9]+)([*/])([0-9]+)/);
+    while (newString.match(/[0-9\.]+[-+\/*][0-9\.]+%/g)) {
+      const expression = newString.match(/([0-9\.]+)([-+\/*])([0-9\.]+)%/);
+      const value = expression[1];
+      const operator = expression[2];
+      const percents = expression[3];
+      const result = (Number(value) / 100) * Number(percents);
+      newString = newString.replace(
+        expression[0],
+        `${value}${operator}${result}`
+      );
+    }
+
+    while (newString.match(/([0-9\.]+)([*/])([0-9\.]+)/)) {
+      const devAndMult = newString.match(/([0-9\.]+)([*/])([0-9\.]+)/);
       const operand1 = devAndMult[1];
       const operand2 = devAndMult[3];
       const operator = devAndMult[2];
@@ -72,8 +91,8 @@ function Calculator() {
       newString = newString.replace(devAndMult[0], `${result}`);
     }
 
-    while (newString.match(/([0-9]+)([-+])([0-9]+)/)) {
-      const addAndSubstr = newString.match(/([0-9]+)([-+])([0-9]+)/);
+    while (newString.match(/([0-9\.]+)([-+])([0-9\.]+)/)) {
+      const addAndSubstr = newString.match(/([0-9\.]+)([-+])([0-9\.]+)/);
       const operand1 = addAndSubstr[1];
       const operand2 = addAndSubstr[3];
       const operator = addAndSubstr[2];
@@ -93,27 +112,23 @@ function Calculator() {
   };
 
   this.openMathBrackets = (string) => {
-    if (!string.match(/\([^)(]*?\)/)) {
-      const res = this.parseMathString(string);
-      return res;
-    } else {
-      while (string.match(/\([^)(]*?\)/)) {
-        const bracketsExpressions = string.match(/\([^)(]*?\)/g);
-        bracketsExpressions.forEach((exp) => {
-          const newExp = exp.replace(/[\)\(]/g, "");
-          string = string.replace(exp, this.openMathBrackets(newExp));
-        });
-      }
+    let newString = string;
+
+    while (newString.match(/\([^\)\(]*?\)/)) {
+      const bracketsExpressions = newString.match(/\([^)(]*?\)/g);
+      bracketsExpressions.forEach((exp) => {
+        const newExp = exp.match(/^\((.*)\)$/)[1];
+
+        newString = newString.replace(exp, this.processMathString(newExp));
+      });
     }
 
-    if (string.match(/[-+*/]/)) {
-      string = this.openMathBrackets(string);
-    }
+    newString = this.processMathString(newString);
 
-    return string;
+    return newString;
   };
 
-  this.parseMathExpression = () => {
+  this.parseMathString = () => {
     let stringExpression = this.input.value;
 
     stringExpression = this.openMathBrackets(stringExpression);
