@@ -120,7 +120,7 @@ function Calculator() {
         const value = expression[1];
         const operator = expression[2];
         const percents = expression[3];
-        const percentsValue = 100 / Number(percents);
+        const percentsValue = Number(percents) / 100;
         const newExp = `${value}${operator}${percentsValue}`;
 
         newString = newString.replace(
